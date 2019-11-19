@@ -15,8 +15,9 @@ sigmaE = 0.2
 ####################
 
 files = os.listdir(folder)
-I = np.array([cv.imread(folder + "/" + f) for f in files]) / 255.0
-gray = I.sum(3)
+I = np.array([cv.imread(folder + "/" + f) for f in files])
+gray = np.array([cv.cvtColor(im, cv.COLOR_BGR2GRAY) for im in I])
+I = I / 255.0
 N, w, h, c = I.shape
 
 def plot_images(images,cmap='viridis'):
@@ -32,7 +33,7 @@ def plot_images(images,cmap='viridis'):
 	plt.show()
 
 # Compute C
-C = np.ones((N, w, h))
+C = abs(np.array([cv.Laplacian(im, cv.CV_16S, ksize=3) for im in gray]))+1e-5
 
 # Compute S
 S = np.ones((N, w, h))
