@@ -36,7 +36,7 @@ def plot_images(images, cmap='viridis'):
 C = abs(np.array([cv.Laplacian(im, cv.CV_16S, ksize=3) for im in gray]))+1e-5
 
 # Compute S
-S = np.sqrt(((I - np.expand_dims(I.sum(3), 3)) ** 2).sum(3))
+S = np.sqrt(((I - np.expand_dims(I.sum(3), 3)) ** 2).sum(3))+1e-5
 
 #S = np.zeros(C.shape)
 #for i in range(len(I)):
@@ -54,7 +54,30 @@ W = C**wc * S**ws * E**we
 W /= W.sum(0)
 W = W.reshape(N, w, h, 1)
 
+# Bad R
 R = (W*I).sum(0)
+
+plot_images(np.concatenate((I, [R])))
+
+W = W.squeeze()
+LI, GW = [I], [W]
+r = [w0 for w0 in W]
+a0 = [0]*N
+while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
+	gw = np.array([cv.pyrDown(w) for w in GW[-1]])
+	GW.append(gw)
+	print(gw.shape)
+	for i in range(N):
+		a, b = gw[i].shape
+		print(r[i].shape, a, b, a0)
+		r[i][a0[i]:a0[i]+a,:b] = gw[i]
+		a0[i] += a
+
+print([r0.shape for r0 in GW])
+plot_images(r)
+
+
+
 
 # plot_images(np.concatenate((I, [R])))
 # plot_images(C)
@@ -79,3 +102,5 @@ R = (W*I).sum(0)
 # 	res += np.multiply(lp[-1],gp[-1])
 
 # plot_images(np.concatenate((I, [res])))
+
+
