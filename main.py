@@ -94,11 +94,7 @@ while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
 
 LI = []
 for i in range(len(GI)-1):
-	print([GI[i][n].shape[:2] for n in range(N)])
-	print([GI[i+1][n].shape[:2] for n in range(N)])
-	gi = np.array([cv.pyrUp(GI[i+1][n]) for n in range(N)])
-	#dstsize=GI[i][n].shape[:2]
-	print([gi[n].shape[:2] for n in range(N)])
+	gi = np.array([cv.pyrUp(GI[i+1][n], dstsize=(GI[i][n].shape[1], GI[i][n].shape[0])) for n in range(N)])
 	LI.append(gi - GI[i])
 
 plot_pyramids(LI)
