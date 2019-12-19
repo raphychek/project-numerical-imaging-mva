@@ -38,6 +38,14 @@ C = abs(np.array([cv.Laplacian(im, cv.CV_16S, ksize=3) for im in gray]))+1e-5
 # Compute S
 S = np.sqrt(((I - np.expand_dims(I.sum(3), 3)) ** 2).sum(3))+1e-5
 
+#S = np.zeros(C.shape)
+#for i in range(len(I)):
+#	R=I[i][:,:,0]
+#	G=I[i][:,:,1]
+#	B=I[i][:,:,2]
+#	mu=(R+G+B)/3
+#	S[i] = np.sqrt(((R - mu)**2 + (G - mu)**2 + (B - mu)**2)/3)
+
 # Compute E
 E = np.exp(-((I - 0.5)**2 / (2*sigmaE**2)).sum(3))
 
