@@ -61,16 +61,14 @@ plot_images(np.concatenate((I, [R])))
 W = W.squeeze()
 LI, GW = [I], [W]
 r = [w0 for w0 in W]
-a0 = [0]*N
+b0 = [0]*N
 while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
 	gw = np.array([cv.pyrDown(w) for w in GW[-1]])
 	GW.append(gw)
 	print(gw.shape)
 	for i in range(N):
 		a, b = gw[i].shape
-		print(r[i].shape, a, b, a0)
-		r[i][a0[i]:a0[i]+a,:b] = gw[i]
-		a0[i] += a
+		r[i][-a:,b0[i]:b0[i]+b] = gw[i]
+		b0[i] += b
 
-print([r0.shape for r0 in GW])
 plot_images(r)
