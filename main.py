@@ -93,34 +93,24 @@ while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
 # plot_pyramids(GI)
 
 LI = []
-for i in range(len(GI)-1):
-	gi = np.array([cv.pyrUp(GI[i+1][n], dstsize=(GI[i][n].shape[1], GI[i][n].shape[0])) for n in range(N)])
-	LI.append(gi - GI[i])
+for l in range(len(GI)-1):
+	gi_up = np.array([cv.pyrUp(GI[l+1][n], dstsize=(GI[l][n].shape[1], GI[l][n].shape[0])) for n in range(N)])
+	LI.append(gi_up - GI[l])
+LI.append(GI[-1])
 
-plot_pyramids(LI)
+# plot_pyramids(LI)
 
-# plot_images(np.concatenate((I, [R])))
-# plot_images(C)
+LR = []
+for l in range(len(GW)):
+	LR.append((np.expand_dims(GW[l], 3) * LI[l]).sum(0))
 
-# res = 0
-# for im in I:
-# 	G = im.copy()
-# 	gp = [G]
-# 	for i in range(6):
-# 		G = cv.pyrDown(G)
-# 		gp.append(G)
+# plot_pyramids([np.expand_dims(lr, 0) for lr in LR])
 
-# 	lp = [gp[5]]
-# 	for i in range(5,0,-1):
-# 		GE = cv.pyrUp(gp[i])
-# 		print(gp[i-1].shape)
-# 		print(GE.shape)
-# 		L = cv.subtract(gp[i-1],GE)
-# 		print(L.shape)
-# 		lp.append(L)
+R = LR[-1]
+for l in range(2, len(LR)+1):
+	# print(R.shape)
+	# print(R.shape)
+	r_up = cv.pyrUp(R, dstsize=(LR[-l].shape[1], LR[-l].shape[0]))
+	R = r_up + LR[-l]
 
-# 	res += np.multiply(lp[-1],gp[-1])
-
-# plot_images(np.concatenate((I, [res])))
-
-
+plot_images([R])
