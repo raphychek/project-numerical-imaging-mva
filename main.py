@@ -25,12 +25,36 @@ def plot_images(images, cmap='viridis'):
 	n=len(images)
 	for i in range(n):
 		pl.subplot((n+1)//2,2,i+1)
-		cmap = 'gray' if len(images[i].shape)==2 else cmap
-		pl.imshow(images[i],cmap=cmap)
+		im = images[i].squeeze()
+		cmap = 'gray' if len(im.shape)==2 else cmap
+		pl.imshow(im,cmap=cmap)
 		pl.xticks([])
 		pl.yticks([])
 	pl.tight_layout(pad=0,h_pad=0,w_pad=0)
 	pl.show()
+
+def plot_pyramids(pyr):
+	ims = []
+	K = len(pyr)
+	N = pyr[0].shape[0]
+	if len(pyr[0][0].shape) == 2:
+		for k in range(K):
+			pyr[k] = np.expand_dims(pyr[k], 3)
+	for i in range(N):
+		if len(pyr[0][i].shape) == 2:
+			for k in range(K):
+				pyr[k][i] = np.expand_dims(pyr[k][i], 2)
+		w, h, c = pyr[0][i].shape
+		w2 = w + pyr[1][i].shape[0]
+		im = np.zeros((w2, h, c))
+		im[:w,:h,:] = pyr[0][i]
+		x = 0
+		for k in range(1, K):
+			a, b, _ = pyr[k][i].shape
+			im[-a:, x:x+b,:] = pyr[k][i]
+			x += b
+		ims.append(im)
+	plot_images(ims)
 
 # Compute C
 C = abs(np.array([cv.Laplacian(im, cv.CV_16S, ksize=3) for im in gray]))+1e-5
@@ -57,25 +81,27 @@ W = W.reshape(N, w, h, 1)
 # Bad R
 R = (W*I).sum(0)
 
-plot_images(np.concatenate((I, [R])))
+# plot_images(np.concatenate((I, [R])))
 
 W = W.squeeze()
-LI, GW = [I], [W]
-r = [w0 for w0 in W]
-b0 = [0]*N
+GI, GW = [I], [W]
 while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
-	gw = np.array([cv.pyrDown(w) for w in GW[-1]])
-	GW.append(gw)
-	print(gw.shape)
-	for i in range(N):
-		a, b = gw[i].shape
-		r[i][-a:,b0[i]:b0[i]+b] = gw[i]
-		b0[i] += b
+	GW.append(np.array([cv.pyrDown(w) for w in GW[-1]]))
+	GI.append(np.array([cv.pyrDown(im) for im in GI[-1]]))
 
-plot_images(r)
+# plot_pyramids(GW)
+# plot_pyramids(GI)
 
+LI = []
+for i in range(len(GI)-1):
+	print([GI[i][n].shape[:2] for n in range(N)])
+	print([GI[i+1][n].shape[:2] for n in range(N)])
+	gi = np.array([cv.pyrUp(GI[i+1][n]) for n in range(N)])
+	#dstsize=GI[i][n].shape[:2]
+	print([gi[n].shape[:2] for n in range(N)])
+	LI.append(gi - GI[i])
 
-
+plot_pyramids(LI)
 
 # plot_images(np.concatenate((I, [R])))
 # plot_images(C)
