@@ -56,6 +56,7 @@ W = W.reshape(N, w, h, 1)
 
 # Bad R
 R = (W*I).sum(0)
+
 plot_images(np.concatenate((I, [R])))
 
 W = W.squeeze()
@@ -72,3 +73,32 @@ while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
 		b0[i] += b
 
 plot_images(r)
+
+
+
+
+# plot_images(np.concatenate((I, [R])))
+# plot_images(C)
+
+# res = 0
+# for im in I:
+# 	G = im.copy()
+# 	gp = [G]
+# 	for i in range(6):
+# 		G = cv.pyrDown(G)
+# 		gp.append(G)
+
+# 	lp = [gp[5]]
+# 	for i in range(5,0,-1):
+# 		GE = cv.pyrUp(gp[i])
+# 		print(gp[i-1].shape)
+# 		print(GE.shape)
+# 		L = cv.subtract(gp[i-1],GE)
+# 		print(L.shape)
+# 		lp.append(L)
+
+# 	res += np.multiply(lp[-1],gp[-1])
+
+# plot_images(np.concatenate((I, [res])))
+
+
