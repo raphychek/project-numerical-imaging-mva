@@ -98,6 +98,13 @@ for l in range(len(GI)-1):
 	LI.append(gi_up - GI[l])
 LI.append(GI[-1])
 
+Ireconstruct = np.array(LI[-1])
+for l in range(2, len(LI)+1):
+	li_up = np.array([cv.pyrUp(Ireconstruct[n], dstsize=(LI[-l][n].shape[1], LI[-l][n].shape[0])) for n in range(N)])
+	Ireconstruct = li_up + LI[-l]
+
+plot_images(Ireconstruct)
+
 # plot_pyramids(LI)
 
 LR = []
@@ -108,8 +115,6 @@ for l in range(len(GW)):
 
 R = LR[-1]
 for l in range(2, len(LR)+1):
-	# print(R.shape)
-	# print(R.shape)
 	r_up = cv.pyrUp(R, dstsize=(LR[-l].shape[1], LR[-l].shape[0]))
 	R = r_up + LR[-l]
 
