@@ -16,6 +16,7 @@ sigmaE = 0.2
 
 files = os.listdir(folder)
 I = np.array([cv.imread(folder + "/" + f) for f in files])
+I = I[:,:,:,[2, 1, 0]]
 gray = np.array([cv.cvtColor(im, cv.COLOR_RGB2GRAY) for im in I])
 I = I / 255.0
 N, w, h, c = I.shape
@@ -27,7 +28,7 @@ def plot_images(images, cmap='viridis'):
 		pl.subplot((n+1)//2,2,i+1)
 		im = images[i].squeeze()
 		cmap = 'gray' if len(im.shape)==2 else cmap
-		pl.imshow(im,cmap=cmap)
+		pl.imshow(im)
 		pl.xticks([])
 		pl.yticks([])
 	pl.tight_layout(pad=0,h_pad=0,w_pad=0)
@@ -37,13 +38,12 @@ def plot_pyramids(pyr):
 	ims = []
 	K = len(pyr)
 	N = pyr[0].shape[0]
+	sh = []
 	if len(pyr[0][0].shape) == 2:
 		for k in range(K):
+			sh.append(pyr[k].shape)
 			pyr[k] = np.expand_dims(pyr[k], 3)
 	for i in range(N):
-		if len(pyr[0][i].shape) == 2:
-			for k in range(K):
-				pyr[k][i] = np.expand_dims(pyr[k][i], 2)
 		w, h, c = pyr[0][i].shape
 		w2 = w + pyr[1][i].shape[0]
 		im = np.zeros((w2, h, c))
@@ -54,6 +54,9 @@ def plot_pyramids(pyr):
 			im[-a:, x:x+b,:] = pyr[k][i]
 			x += b
 		ims.append(im)
+	if len(sh) > 0:
+		for k in range(K):
+			pyr[k] = pyr[k].reshape(sh[k])
 	plot_images(ims)
 
 # Compute C
@@ -76,14 +79,36 @@ E = np.exp(-((I - 0.5)**2 / (2*sigmaE**2)).sum(3))
 # Compute W
 W = C**wc * S**ws * E**we
 W /= W.sum(0)
-W = W.reshape(N, w, h, 1)
 
 # Bad R
-R = (W*I).sum(0)
-
+# R = (np.expand_dims(W, 3)*I).sum(0)
 # plot_images(np.concatenate((I, [R])))
 
-W = W.squeeze()
+# Bad R with gaussian
+# W = np.array([cv.GaussianBlur(wi, (9,9), 4) for wi in W])
+# # plot_images(W)
+# R = (np.expand_dims(W, 3)*I).sum(0)
+# plot_images(np.concatenate((I, [R])))
+
+# Bad R with cross-bilateral
+# VERY SLOW BECAUSE PYTHON .......
+# sx, sc, sk = 3, 0.3, 3
+# W2 = np.zeros((N, w, h))
+# for i in range(w):
+# 	for j in range(h):
+# 		for k in range(N):
+# 			patch = W[k, i-sk:i+sk+1, j-sk:j+sk+1] 
+# 			dc = np.exp(- np.linalg.norm(I[k, i-sk:i+sk+1, j-sk:j+sk+1] - I[k,i,j], axis=2)**2 / sc**2)
+# 			dx = np.exp(- (patch - W[k,i,j])**2 / sx**2)
+# 			coeff = dx*dc
+# 			coeff /= coeff.sum()
+# 			W2[k,i,j] = (patch * coeff).sum() + 1e-5
+# 	print(i, "/", w)
+# W2 /= W2.sum(0)
+# plot_images(W2)
+# R = (np.expand_dims(W2, 3)*I).sum(0)
+# plot_images(np.concatenate((I, [R])))
+
 GI, GW = [I], [W]
 while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
 	GW.append(np.array([cv.pyrDown(w) for w in GW[-1]]))
@@ -116,6 +141,7 @@ R = LR[-1]
 for l in range(2, len(LR)+1):
 	r_up = cv.pyrUp(R, dstsize=(LR[-l].shape[1], LR[-l].shape[0]))
 	R = r_up - LR[-l]
+R = np.minimum(1, np.maximum(0, R))
 
-print(I.shape, R.shape)
+# cv.imwrite(folder + "/" + "res.jpg", 256*R[:,:,[2,1,0]])
 plot_images(np.concatenate((I, [R]), 0))
