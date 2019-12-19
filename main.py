@@ -16,7 +16,6 @@ sigmaE = 0.2
 
 files = os.listdir(folder)
 name=files[0].split('_')[0]
-print(name)
 I = np.array([cv.imread(folder + "/" + f) for f in files])
 I = I[:,:,:,[2, 1, 0]]
 gray = np.array([cv.cvtColor(im, cv.COLOR_RGB2GRAY) for im in I])
@@ -145,5 +144,5 @@ for l in range(2, len(LR)+1):
 	R = r_up - LR[-l]
 R = np.minimum(1, np.maximum(0, R))
 
-cv.imwrite(folder + "/" + name + "_res.jpg", 256*R[:,:,[2,1,0]])
+cv.imwrite("results/" + name + "_res.jpg", 256*R[:,:,[2,1,0]])
 plot_images(np.concatenate((I, [R]), 0))
