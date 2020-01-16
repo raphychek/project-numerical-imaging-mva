@@ -82,33 +82,34 @@ W = C**wc * S**ws * E**we
 W /= W.sum(0)
 
 # Bad R
-# R = (np.expand_dims(W, 3)*I).sum(0)
-# plot_images(np.concatenate((I, [R])))
+R = (np.expand_dims(W, 3)*I).sum(0)
+plot_images(np.concatenate((I, [R])))
 
 # Bad R with gaussian
-# W = np.array([cv.GaussianBlur(wi, (9,9), 4) for wi in W])
-# # plot_images(W)
-# R = (np.expand_dims(W, 3)*I).sum(0)
-# plot_images(np.concatenate((I, [R])))
+W = np.array([cv.GaussianBlur(wi, (9,9), 5) for wi in W])
+# plot_images(W)
+R = (np.expand_dims(W, 3)*I).sum(0)
+plot_images(np.concatenate((I, [R])))
 
 # Bad R with cross-bilateral
 # VERY SLOW BECAUSE PYTHON .......
-# sx, sc, sk = 3, 0.3, 3
-# W2 = np.zeros((N, w, h))
-# for i in range(w):
-# 	for j in range(h):
-# 		for k in range(N):
-# 			patch = W[k, i-sk:i+sk+1, j-sk:j+sk+1] 
-# 			dc = np.exp(- np.linalg.norm(I[k, i-sk:i+sk+1, j-sk:j+sk+1] - I[k,i,j], axis=2)**2 / sc**2)
-# 			dx = np.exp(- (patch - W[k,i,j])**2 / sx**2)
-# 			coeff = dx*dc
-# 			coeff /= coeff.sum()
-# 			W2[k,i,j] = (patch * coeff).sum() + 1e-5
-# 	print(i, "/", w)
-# W2 /= W2.sum(0)
-# plot_images(W2)
-# R = (np.expand_dims(W2, 3)*I).sum(0)
-# plot_images(np.concatenate((I, [R])))
+sx, sc, sk = 5, 0.3, 4
+dx = np.array([[(-sk+i)**2 + (-sk+j)**2 for j in range(2*sk+1)] for i in range(2*sk+1)])
+dx = np.exp(- 0.5 * dx / sx**2)
+W2 = W.copy()
+for i in range(sk, w-sk):
+	for j in range(sk, h-sk):
+		for k in range(N):
+			patch = W[k, i-sk:i+sk+1, j-sk:j+sk+1] 
+			dc = np.exp(- 0.5 * np.linalg.norm(I[k, i-sk:i+sk+1, j-sk:j+sk+1] - I[k,i,j], axis=2)**2 / sc**2)
+			coeff = dx*dc
+			coeff /= coeff.sum()
+			W2[k,i,j] = (patch * coeff).sum() + 1e-7
+	print(i, "/", w)
+W2 /= W2.sum(0)
+plot_images(W2)
+R = (np.expand_dims(W2, 3)*I).sum(0)
+plot_images(np.concatenate((I, [R])))
 
 GI, GW = [I], [W]
 while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
