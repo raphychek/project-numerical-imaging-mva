@@ -10,12 +10,15 @@ args = parser.parse_args()
 folder = args.folder
 
 #### PARAMETERS ####
-wc, ws, we = 1, 1, 1
+wc, ws, we = 40, 1, 30
 sigmaE = 0.2
 ####################
 
 files = os.listdir(folder)
+if '.DS_Store' in files:
+	files.remove('.DS_Store')
 name=files[0].split('_')[0]
+print(files)
 I = np.array([cv.imread(folder + "/" + f) for f in files])
 I = I[:,:,:,[2, 1, 0]]
 gray = np.array([cv.cvtColor(im, cv.COLOR_RGB2GRAY) for im in I])
@@ -81,69 +84,78 @@ E = np.exp(-((I - 0.5)**2 / (2*sigmaE**2)).sum(3))
 W = C**wc * S**ws * E**we
 W /= W.sum(0)
 
-# Bad R
-R = (np.expand_dims(W, 3)*I).sum(0)
-plot_images(np.concatenate((I, [R])))
+def naive():
+	# Bad R
+	R = (np.expand_dims(W, 3)*I).sum(0)
+	plot_images(np.concatenate((I, [R])))
 
-# Bad R with gaussian
-W = np.array([cv.GaussianBlur(wi, (9,9), 5) for wi in W])
-# plot_images(W)
-R = (np.expand_dims(W, 3)*I).sum(0)
-plot_images(np.concatenate((I, [R])))
+def gaussian():
+	# Bad R with gaussian
+	W = np.array([cv.GaussianBlur(wi, (9,9), 5) for wi in W])
+	# plot_images(W)
+	R = (np.expand_dims(W, 3)*I).sum(0)
+	plot_images(np.concatenate((I, [R])))
 
-# Bad R with cross-bilateral
-# VERY SLOW BECAUSE PYTHON .......
-sx, sc, sk = 5, 0.3, 4
-dx = np.array([[(-sk+i)**2 + (-sk+j)**2 for j in range(2*sk+1)] for i in range(2*sk+1)])
-dx = np.exp(- 0.5 * dx / sx**2)
-W2 = W.copy()
-for i in range(sk, w-sk):
-	for j in range(sk, h-sk):
-		for k in range(N):
-			patch = W[k, i-sk:i+sk+1, j-sk:j+sk+1] 
-			dc = np.exp(- 0.5 * np.linalg.norm(I[k, i-sk:i+sk+1, j-sk:j+sk+1] - I[k,i,j], axis=2)**2 / sc**2)
-			coeff = dx*dc
-			coeff /= coeff.sum()
-			W2[k,i,j] = (patch * coeff).sum() + 1e-7
-	print(i, "/", w)
-W2 /= W2.sum(0)
-plot_images(W2)
-R = (np.expand_dims(W2, 3)*I).sum(0)
-plot_images(np.concatenate((I, [R])))
+def cross_bil():
+	# Bad R with cross-bilateral
+	# VERY SLOW BECAUSE PYTHON .......
+	sx, sc, sk = 5, 0.3, 4
+	dx = np.array([[(-sk+i)**2 + (-sk+j)**2 for j in range(2*sk+1)] for i in range(2*sk+1)])
+	dx = np.exp(- 0.5 * dx / sx**2)
+	W2 = W.copy()
+	for i in range(sk, w-sk):
+		for j in range(sk, h-sk):
+			for k in range(N):
+				patch = W[k, i-sk:i+sk+1, j-sk:j+sk+1] 
+				dc = np.exp(- 0.5 * np.linalg.norm(I[k, i-sk:i+sk+1, j-sk:j+sk+1] - I[k,i,j], axis=2)**2 / sc**2)
+				coeff = dx*dc
+				coeff /= coeff.sum()
+				W2[k,i,j] = (patch * coeff).sum() + 1e-7
+		print(i, "/", w)
+	W2 /= W2.sum(0)
+	plot_images(W2)
+	R = (np.expand_dims(W2, 3)*I).sum(0)
+	plot_images(np.concatenate((I, [R])))
 
-GI, GW = [I], [W]
-while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
-	GW.append(np.array([cv.pyrDown(w) for w in GW[-1]]))
-	GI.append(np.array([cv.pyrDown(im) for im in GI[-1]]))
+def pyramid(plot=False,ind=(wc,ws,we)):
+	GI, GW = [I], [W]
+	while min(GW[-1].shape[1], GW[-1].shape[2]) > 4:
+		GW.append(np.array([cv.pyrDown(w) for w in GW[-1]]))
+		GI.append(np.array([cv.pyrDown(im) for im in GI[-1]]))
 
-# plot_pyramids(GW)
-# plot_pyramids(GI)
+	if plot:
+		plot_pyramids(GW)
+		plot_pyramids(GI)
 
-LI = []
-for l in range(len(GI)-1):
-	gi_up = np.array([cv.pyrUp(GI[l+1][n], dstsize=(GI[l][n].shape[1], GI[l][n].shape[0])) for n in range(N)])
-	LI.append(gi_up - GI[l])
-LI.append(GI[-1])
+	LI = []
+	for l in range(len(GI)-1):
+		gi_up = np.array([cv.pyrUp(GI[l+1][n], dstsize=(GI[l][n].shape[1], GI[l][n].shape[0])) for n in range(N)])
+		LI.append(gi_up - GI[l])
+	LI.append(GI[-1])
 
-# plot_pyramids(LI)
+	if plot:
+		plot_pyramids(LI)
 
-# Ireconstruct = np.array(LI[-1])
-# for l in range(2, len(LI)+1):
-# 	li_up = np.array([cv.pyrUp(Ireconstruct[n], dstsize=(LI[-l][n].shape[1], LI[-l][n].shape[0])) for n in range(N)])
-# 	Ireconstruct = li_up - LI[-l]
-# 	plot_images(Ireconstruct)
+	# Ireconstruct = np.array(LI[-1])
+	# for l in range(2, len(LI)+1):
+	# 	li_up = np.array([cv.pyrUp(Ireconstruct[n], dstsize=(LI[-l][n].shape[1], LI[-l][n].shape[0])) for n in range(N)])
+	# 	Ireconstruct = li_up - LI[-l]
+	# 	plot_images(Ireconstruct)
 
-LR = []
-for l in range(len(GW)):
-	LR.append((np.expand_dims(GW[l], 3) * LI[l]).sum(0))
+	LR = []
+	for l in range(len(GW)):
+		LR.append((np.expand_dims(GW[l], 3) * LI[l]).sum(0))
 
-# plot_pyramids([np.expand_dims(lr, 0) for lr in LR])
+	if plot:
+		plot_pyramids([np.expand_dims(lr, 0) for lr in LR])
 
-R = LR[-1]
-for l in range(2, len(LR)+1):
-	r_up = cv.pyrUp(R, dstsize=(LR[-l].shape[1], LR[-l].shape[0]))
-	R = r_up - LR[-l]
-R = np.minimum(1, np.maximum(0, R))
+	R = LR[-1]
+	for l in range(2, len(LR)+1):
+		r_up = cv.pyrUp(R, dstsize=(LR[-l].shape[1], LR[-l].shape[0]))
+		R = r_up - LR[-l]
+	R = np.minimum(1, np.maximum(0, R))
 
-cv.imwrite("results/" + name + "_res.jpg", 256*R[:,:,[2,1,0]])
-plot_images(np.concatenate((I, [R]), 0))
+	cv.imwrite("results/" + name + "_res"+str(ind)+".jpg", 256*R[:,:,[2,1,0]])
+	plot_images(np.concatenate((I, [R]), 0))
+
+pyramid()
