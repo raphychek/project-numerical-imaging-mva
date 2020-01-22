@@ -84,7 +84,7 @@ C = abs(np.array([cv.Laplacian(im, cv.CV_16S, ksize=3) for im in gray]))+1e-5
 # Compute S
 S = np.sqrt(((I - np.expand_dims(I.sum(3), 3)) ** 2).sum(3))+1e-5
 # Compute E
-E = np.exp(-((I - 0.5)**2 / (2*sigmaE**2)).sum(3))
+E = np.exp(-((I.mean(3) - 0.5)**2 / (2*sigmaE**2)))
 # Compute W
 W = C**wc * S**ws * E**we
 W /= W.sum(0)
